@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+dist/
+build/
+.vite/
+*.tsbuildinfo
+
+# test output
+coverage/
+playwright-report/
+test-results/
+
+# secrets and local config
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# logs, OS and editor files
+*.log
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# local-only reference material (rulebooks, third-party art)
+/private/
