@@ -8,8 +8,12 @@ help:
 	@echo "make down   停止並移除容器"
 	@echo "make check  在容器內跑完整檢查（format、lint、typecheck、test、build）"
 
+# 用 Ctrl+C 結束是正常操作：compose 會回傳 130，不當成錯誤；其他失敗照常回報。
 dev:
-	docker compose up --build
+	@echo "docker compose up --build（按 Ctrl+C 結束）"
+	@trap 'exit 0' INT; \
+	docker compose up --build; status=$$?; \
+	if [ $$status -ne 130 ]; then exit $$status; fi
 
 down:
 	docker compose down
