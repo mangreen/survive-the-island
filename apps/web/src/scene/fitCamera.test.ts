@@ -34,4 +34,13 @@ describe('fitCamera', () => {
     expect(maxY).toBeLessThanOrEqual(1);
     expect(Math.max(maxX, maxY)).toBeGreaterThan(0.9);
   });
+
+  // 回歸：視窗大小改變時，呼叫端只改 aspect 屬性，投影矩陣還是舊的
+  it('只改了 aspect 也能得到正確的取景', () => {
+    const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 2000);
+    camera.aspect = 390 / 700;
+    const stale = fitCamera(camera, points, 56);
+    const fresh = fitCamera(new THREE.PerspectiveCamera(28, 390 / 700, 0.1, 2000), points, 56);
+    expect(stale.distance).toBeCloseTo(fresh.distance);
+  });
 });

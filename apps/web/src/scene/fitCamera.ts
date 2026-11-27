@@ -7,7 +7,7 @@ export interface CameraFit {
 
 /**
  * 找出能讓所有點留在畫面內的最近鏡頭距離，並讓內容上下置中。
- * camera 的 fov 與 aspect 由呼叫端先設好；函式會移動 camera。
+ * camera 的 fov 與 aspect 由呼叫端先設好；函式會更新投影矩陣並移動 camera。
  */
 export function fitCamera(
   camera: THREE.PerspectiveCamera,
@@ -19,6 +19,8 @@ export function fitCamera(
   const direction = new THREE.Vector3(0, Math.sin(elevation), Math.cos(elevation));
   const target = new THREE.Vector3();
   const projected = new THREE.Vector3();
+  // 投影要反映目前的 aspect
+  camera.updateProjectionMatrix();
 
   const bounds = (distance: number) => {
     camera.position.copy(target).addScaledVector(direction, distance);
@@ -55,6 +57,5 @@ export function fitCamera(
     }
   }
   bounds(distance);
-  camera.updateProjectionMatrix();
   return { distance, target };
 }

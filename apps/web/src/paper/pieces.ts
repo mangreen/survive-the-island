@@ -72,12 +72,12 @@ function mountainPeak(height: number, rng: Rng): THREE.BufferGeometry {
   );
   const snow = cross(
     [
-      [w * 0.08, height * 1.005],
-      [w * 0.25, height * 0.75],
-      [w * 0.1, height * 0.8],
-      [0, height * 0.7],
-      [-w * 0.08, height * 0.8],
-      [-w * 0.19, height * 0.71],
+      [w * 0.08, height * 1.01],
+      [w * 0.34, height * 0.66],
+      [w * 0.14, height * 0.74],
+      [0, height * 0.6],
+      [-w * 0.12, height * 0.74],
+      [-w * 0.25, height * 0.62],
     ],
     PALETTE.cream,
     0.065,
@@ -133,7 +133,11 @@ export function tile(terrain: Terrain, rng: Rng): THREE.BufferGeometry {
 }
 
 export function explorer(color: string): THREE.BufferGeometry {
-  const base = slab(ellipse(0, 0, 0.17, 0.17, 10), color, 0, 0.06);
+  // 奶油色外圈讓棋子在任何地形上都看得出來
+  const base = merge([
+    slab(ellipse(0, 0, 0.23, 0.23, 14), PALETTE.cream, 0, 0.035, PALETTE.ink),
+    slab(ellipse(0, 0, 0.17, 0.17, 14), color, 0.035, 0.03),
+  ]);
   const body = cross(
     [
       [-0.12, 0],

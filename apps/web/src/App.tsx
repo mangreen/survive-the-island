@@ -1,11 +1,6 @@
-import { t } from './i18n';
-import { RoomSettingsHelp } from './room-settings/RoomSettingsHelp';
+import { PrototypeScreen } from './prototype/PrototypeScreen';
 
+/** M0 只有技術原型這一個畫面；M2 起換成真正的遊戲流程 */
 export function App() {
-  return (
-    <main className="page">
-      <h1>{t.appTitle}</h1>
-      <RoomSettingsHelp />
-    </main>
-  );
+  return <PrototypeScreen />;
 }
