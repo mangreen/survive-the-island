@@ -20,20 +20,23 @@ export const PALETTE = {
   rockDark: '#6f5f57',
   wood: '#b9763f',
   woodDark: '#8d5630',
-  serpent: '#b5c93f',
-  serpentBelly: '#d2483a',
-  shark: '#5d6b78',
-  whale: '#3f5f8a',
+  // 生物顏色所有版本統一：海蛇紅、鯊魚綠、鯨魚藍、怪獸紫（怪獸模型到 Island 版才做）
+  serpent: '#8c1f2f',
+  serpentCrest: '#f1e3bd',
+  shark: '#6cc24a',
+  sharkBelly: '#f3ec9a',
+  sharkMouth: '#8c2b33',
+  whale: '#27408f',
   belly: '#e6e0cf',
   skin: '#f0c9a0',
 } as const;
 
-/** 六位玩家的紙色。另外靠棋子底座形狀區分的做法留到 M6。 */
+/** 六位玩家的紙色：紅、藍、黃、薄荷綠、紫、粉紅。另外靠棋子底座形狀區分的做法留到 M6。 */
 export const PLAYER_COLORS = [
   '#c8483a',
-  '#3b6db3',
+  '#2f6fe0',
   '#e0a526',
-  '#4f8f4a',
-  '#8259a8',
-  '#e6e1d6',
+  '#6fe3b4',
+  '#8d3f9f',
+  '#ff7ab8',
 ] as const;

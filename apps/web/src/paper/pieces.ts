@@ -253,6 +253,16 @@ export function boat(): THREE.BufferGeometry {
   return merge(parts);
 }
 
+/**
+ * 海上生物往後仰一點，俯視鏡頭才看得到足夠的側面。
+ * 只適合正面大致朝鏡頭的擺法：要讓生物朝左時用左右鏡射，不要轉 180 度。
+ */
+function leanBack(figure: THREE.BufferGeometry): THREE.BufferGeometry {
+  figure.rotateX(-0.42);
+  figure.translate(0, 0, 0.1);
+  return figure;
+}
+
 function ripple(rx: number, rz: number): THREE.BufferGeometry {
   return slab(ellipse(0, 0, rx, rz, 16), PALETTE.seaLight, 0, 0.025, PALETTE.seaFoam);
 }
@@ -283,8 +293,29 @@ export function serpent(): THREE.BufferGeometry {
     [0.34, 0.74],
     [0.3, 0.45],
   ];
-  return merge([
-    ripple(0.82, 0.42),
+  /** 奶油色背刺，讓暗紅的身體在海面上有清楚的輪廓 */
+  const spike = (points: Point[]) => card(points, PALETTE.serpentCrest, 0.06);
+  const humpSpikes = (x: number, r: number) =>
+    [55, 90, 125].map((degrees) => {
+      const at = (offset: number, radius: number): Point => {
+        const a = ((degrees + offset) * Math.PI) / 180;
+        return [x + Math.cos(a) * radius, Math.sin(a) * radius];
+      };
+      return spike([at(-13, r * 0.94), at(0, r + 0.11), at(13, r * 0.94)]);
+    });
+  const figure = merge([
+    ...humpSpikes(-0.55, 0.22),
+    ...humpSpikes(-0.07, 0.32),
+    spike([
+      [0.32, 0.4],
+      [0.18, 0.55],
+      [0.32, 0.58],
+    ]),
+    spike([
+      [0.32, 0.64],
+      [0.22, 0.84],
+      [0.4, 0.78],
+    ]),
     hump(-0.55, 0.22),
     hump(-0.07, 0.32),
     cross(
@@ -292,34 +323,131 @@ export function serpent(): THREE.BufferGeometry {
       PALETTE.serpent,
       0.06,
     ).translate(0.45, 0, 0),
-    card(ellipse(0.62, 0.76, 0.035, 0.035, 8), PALETTE.serpentBelly, 0.13),
+    card(ellipse(0.62, 0.76, 0.055, 0.055, 10), PALETTE.serpentCrest, 0.13),
+    card(ellipse(0.635, 0.76, 0.027, 0.027, 8), PALETTE.ink, 0.15),
   ]);
+  return merge([ripple(0.82, 0.42), leanBack(figure)]);
 }
 
+/** 沿著嘴緣排一列尖牙；depth 是牙齒朝嘴內伸出的方向與長度 */
+function teeth(from: Point, to: Point, count: number, depth: Point): THREE.BufferGeometry[] {
+  const along = (t: number): Point => [
+    from[0] + (to[0] - from[0]) * t,
+    from[1] + (to[1] - from[1]) * t,
+  ];
+  return Array.from({ length: count }, (_, i) => {
+    const tip = along((i + 0.5) / count);
+    return card(
+      [along(i / count), [tip[0] + depth[0], tip[1] + depth[1]], along((i + 1) / count)],
+      PALETTE.cream,
+      0.14,
+    );
+  });
+}
+
+/** 躍出水面、張著嘴的鯊魚頭，後面跟著尾鰭。朝 +x */
 export function shark(): THREE.BufferGeometry {
-  const fin = card(
-    [
-      [-0.3, 0],
-      [0.32, 0],
-      [0.12, 0.28],
-      [-0.12, 0.58],
-      [-0.16, 0.3],
-    ],
-    PALETTE.shark,
-    0.09,
-  );
-  const tail = card(
-    [
-      [-0.72, 0],
-      [-0.52, 0],
-      [-0.6, 0.16],
-      [-0.78, 0.34],
-      [-0.7, 0.14],
-    ],
-    PALETTE.shark,
-    0.07,
-  );
-  return merge([ripple(0.78, 0.36), fin, tail]);
+  const flat = (points: Point[], color: string, thickness: number) =>
+    card(points, color, thickness);
+  const figure = merge([
+    // 嘴內：比身體薄，只從張開的缺口露出來
+    flat(
+      [
+        [0.14, 0.58],
+        [0.56, 0.9],
+        [0.66, 0.5],
+      ],
+      PALETTE.sharkMouth,
+      0.06,
+    ),
+    flat(
+      [
+        [-0.44, 0],
+        [-0.34, 0.34],
+        [-0.14, 0.64],
+        [0.12, 0.9],
+        [0.42, 1.07],
+        [0.74, 1.12],
+        [0.66, 0.97],
+        [0.16, 0.6],
+        [0.74, 0.5],
+        [0.6, 0.34],
+        [0.4, 0.17],
+        [0.36, 0],
+      ],
+      PALETTE.shark,
+      0.12,
+    ),
+    // 淺色腹部和下顎
+    flat(
+      [
+        [0.13, 0.55],
+        [0.7, 0.475],
+        [0.58, 0.34],
+        [0.39, 0.17],
+        [0.34, 0.01],
+        [0, 0.01],
+        [0.03, 0.3],
+      ],
+      PALETTE.sharkBelly,
+      0.13,
+    ),
+    ...teeth([0.26, 0.675], [0.65, 0.965], 4, [0.045, -0.1]),
+    ...teeth([0.28, 0.585], [0.71, 0.505], 4, [0.005, 0.1]),
+    // 背鰭
+    flat(
+      [
+        [-0.3, 0.3],
+        [-0.74, 0.76],
+        [-0.42, 0.72],
+        [-0.1, 0.66],
+      ],
+      PALETTE.shark,
+      0.09,
+    ),
+    // 眼睛和壓低的眉毛
+    flat(ellipse(0.34, 0.9, 0.075, 0.075, 12), PALETTE.cream, 0.15),
+    flat(ellipse(0.365, 0.885, 0.037, 0.037, 8), PALETTE.ink, 0.17),
+    flat(
+      [
+        [0.22, 1.02],
+        [0.45, 0.93],
+        [0.44, 0.975],
+        [0.23, 1.065],
+      ],
+      PALETTE.ink,
+      0.16,
+    ),
+    // 鰓
+    ...[0, 1, 2].map((i) =>
+      flat(
+        [
+          [-0.17 + i * 0.1, 0.34],
+          [-0.14 + i * 0.1, 0.34],
+          [-0.07 + i * 0.1, 0.52],
+          [-0.1 + i * 0.1, 0.52],
+        ],
+        PALETTE.leafDark,
+        0.14,
+      ),
+    ),
+    // 尾鰭
+    flat(
+      [
+        [-0.98, 0],
+        [-0.76, 0],
+        [-0.8, 0.2],
+        [-0.64, 0.46],
+        [-0.86, 0.32],
+        [-1.1, 0.5],
+        [-1, 0.2],
+      ],
+      PALETTE.shark,
+      0.08,
+    ),
+  ]);
+  figure.translate(0.15, 0, 0);
+  return merge([ripple(0.85, 0.42), leanBack(figure)]);
 }
 
 export function whale(): THREE.BufferGeometry {
@@ -344,19 +472,40 @@ export function whale(): THREE.BufferGeometry {
     edgeOf(PALETTE.whale),
   );
   const belly = card(ellipse(0.26, 0.13, 0.36, 0.1, 12), PALETTE.belly, 0.23);
-  const eye = card(ellipse(0.52, 0.3, 0.035, 0.035, 8), PALETTE.ink, 0.25);
-  const spout = cross(
+  const eye = merge([
+    card(ellipse(0.5, 0.33, 0.07, 0.07, 12), PALETTE.cream, 0.25),
+    card(ellipse(0.52, 0.325, 0.035, 0.035, 8), PALETTE.ink, 0.27),
+  ]);
+  const mouth = card(
     [
-      [0.28, 0.5],
-      [0.34, 0.5],
-      [0.46, 0.8],
-      [0.34, 0.72],
-      [0.31, 0.86],
-      [0.28, 0.72],
-      [0.16, 0.8],
+      [0.3, 0.19],
+      [0.755, 0.235],
+      [0.74, 0.19],
+      [0.31, 0.15],
+    ],
+    PALETTE.cream,
+    0.24,
+  );
+  const spout = card(
+    [
+      [0.2, 0.52],
+      [0.3, 0.52],
+      [0.32, 0.8],
+      [0.56, 0.98],
+      [0.54, 0.8],
+      [0.48, 0.86],
+      [0.34, 0.95],
+      [0.36, 1.12],
+      [0.25, 0.98],
+      [0.14, 1.12],
+      [0.16, 0.95],
+      [0.02, 0.86],
+      [-0.04, 0.8],
+      [-0.06, 0.98],
+      [0.18, 0.8],
     ],
     PALETTE.seaFoam,
-    0.03,
+    0.06,
   );
-  return merge([ripple(0.9, 0.45), profile, belly, eye, spout]);
+  return merge([ripple(0.9, 0.45), leanBack(merge([profile, belly, eye, mouth, spout]))]);
 }
