@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: check (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      # action 以 commit SHA 固定版本
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          package-manager-cache: false
+      # pnpm 版本由 package.json 的 packageManager 欄位固定
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run check
+
+  docker:
+    name: docker (${{ matrix.image }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [node:22-alpine, node:24-alpine]
+    env:
+      NODE_IMAGE: ${{ matrix.image }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # 用經典 builder，擋掉只有 BuildKit 支援的語法。
+      # 這不等於在 Docker 20.10 上實測；舊版相容性仍要在 Mac 上確認。
+      - name: Build image with classic builder
+        run: DOCKER_BUILDKIT=0 docker build --target build --build-arg NODE_IMAGE="$NODE_IMAGE" .
+      - name: Start dev server with compose
+        run: docker compose up -d --build
+      - name: Wait for dev server
+        run: curl --fail --silent --show-error --retry 30 --retry-delay 2 --retry-all-errors http://127.0.0.1:5173/ > /dev/null
+      - name: Compose logs
+        if: failure()
+        run: docker compose logs
