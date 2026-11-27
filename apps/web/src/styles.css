@@ -1,0 +1,87 @@
+:root {
+  --paper: #f6efe0;
+  --paper-shade: #e9dec8;
+  --ink: #2c2a26;
+  --ink-soft: #6a645a;
+  --accent: #c2553a;
+  font-family:
+    system-ui,
+    -apple-system,
+    'PingFang TC',
+    'Noto Sans TC',
+    sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.room-settings .intro,
+.room-settings .question {
+  color: var(--ink-soft);
+  margin: 4px 0 8px;
+}
+
+.room-settings fieldset {
+  border: 1px solid var(--paper-shade);
+  border-radius: 8px;
+  margin: 0 0 12px;
+  padding: 8px 12px 12px;
+}
+
+.room-settings legend {
+  font-weight: 700;
+  padding: 0 4px;
+}
+
+.room-settings .option {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  min-height: 44px;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.room-settings .option:has(input:checked) {
+  background: var(--paper-shade);
+}
+
+.room-settings .option input {
+  margin-top: 4px;
+  accent-color: var(--accent);
+}
+
+.room-settings .tag {
+  margin-left: 6px;
+  font-size: 0.75rem;
+  font-style: normal;
+  color: var(--accent);
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0 6px;
+}
+
+.room-settings .effect,
+.room-settings .good-for {
+  display: block;
+  line-height: 1.5;
+}
+
+.room-settings .good-for {
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
