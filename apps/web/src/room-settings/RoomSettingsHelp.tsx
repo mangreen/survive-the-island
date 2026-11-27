@@ -26,12 +26,11 @@ export function RoomSettingsHelp() {
         const setting = text[id];
         const options = Object.entries(setting.options) as [
           string,
-          { label: string; effect: string; goodFor: string },
+          { label: string; effect: string },
         ][];
         return (
           <fieldset key={id}>
             <legend>{setting.title}</legend>
-            <p className="question">{setting.question}</p>
             {options.map(([value, option]) => (
               <label key={value} className="option">
                 <input
@@ -47,10 +46,6 @@ export function RoomSettingsHelp() {
                     <em className="tag">{text.defaultTag}</em>
                   )}
                   <span className="effect">{option.effect}</span>
-                  <span className="good-for">
-                    {text.goodForPrefix}
-                    {option.goodFor}
-                  </span>
                 </span>
               </label>
             ))}

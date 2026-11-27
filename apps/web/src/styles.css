@@ -263,8 +263,7 @@ button:disabled {
   display: none;
 }
 
-.room-settings .intro,
-.room-settings .question {
+.room-settings .intro {
   color: var(--ink-soft);
   margin: 4px 0 8px;
 }
@@ -310,13 +309,7 @@ button:disabled {
   padding: 0 6px;
 }
 
-.room-settings .effect,
-.room-settings .good-for {
+.room-settings .effect {
   display: block;
   line-height: 1.5;
-}
-
-.room-settings .good-for {
-  color: var(--ink-soft);
-  font-size: 0.875rem;
 }

@@ -11,26 +11,24 @@ describe('房間設定', () => {
     }
   });
 
-  it('每個選項都有名稱、效果與適合情境', () => {
+  it('每個選項都有名稱與一句效果說明', () => {
     for (const id of ids) {
       const text = t.roomSettings[id];
       expect(Object.keys(text.options).sort()).toEqual([...ROOM_SETTINGS[id].options].sort());
       for (const option of Object.values(text.options)) {
         expect(option.label).not.toBe('');
         expect(option.effect).not.toBe('');
-        expect(option.goodFor).not.toBe('');
       }
     }
   });
 
   // 需求是「精簡的說明」：限制字數，避免之後越寫越長
   it('說明保持精簡', () => {
-    expect(t.roomSettings.intro.length).toBeLessThanOrEqual(60);
+    expect(t.roomSettings.intro.length).toBeLessThanOrEqual(20);
     for (const id of ids) {
-      expect(t.roomSettings[id].question.length).toBeLessThanOrEqual(40);
+      expect(t.roomSettings[id].title.length).toBeLessThanOrEqual(8);
       for (const option of Object.values(t.roomSettings[id].options)) {
-        expect(option.effect.length).toBeLessThanOrEqual(80);
-        expect(option.goodFor.length).toBeLessThanOrEqual(20);
+        expect(option.effect.length).toBeLessThanOrEqual(18);
       }
     }
   });
