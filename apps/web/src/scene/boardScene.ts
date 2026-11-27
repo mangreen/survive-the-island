@@ -2,7 +2,13 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CELLS, HEX_RADIUS, toWorld, type Hex, type Terrain } from '../board/atlantis';
-import { createGrainTexture, createPaperMaterial } from '../paper/material';
+import { textured } from '../paper/cut';
+import {
+  createGrainTexture,
+  createPaperMaterial,
+  createSurfaceTexture,
+  surfaceDetail,
+} from '../paper/material';
 import { PALETTE, PLAYER_COLORS } from '../paper/palette';
 import {
   EXPLORER_ON_TILE,
@@ -24,10 +30,13 @@ import { safeIsles } from './isles';
 
 export type Quality = 'high' | 'medium' | 'low';
 
-export const QUALITY: Readonly<Record<Quality, { maxPixelRatio: number; shadowMap: number }>> = {
-  high: { maxPixelRatio: 1.5, shadowMap: 2048 },
-  medium: { maxPixelRatio: 1.25, shadowMap: 1024 },
-  low: { maxPixelRatio: 1, shadowMap: 0 },
+export const QUALITY: Readonly<
+  Record<Quality, { maxPixelRatio: number; shadowMap: number; surfaceDetail: number }>
+> = {
+  // surfaceDetail 是地面紙紋的明暗強度，只有高畫質開啟
+  high: { maxPixelRatio: 1.5, shadowMap: 2048, surfaceDetail: 1.7 },
+  medium: { maxPixelRatio: 1.25, shadowMap: 1024, surfaceDetail: 0 },
+  low: { maxPixelRatio: 1, shadowMap: 0, surfaceDetail: 0 },
 };
 
 export interface RenderStats extends FrameSummary {
@@ -107,12 +116,16 @@ export function createBoardScene(
   scene.add(sun);
 
   const grain = createGrainTexture();
-  const paper = createPaperMaterial(grain);
+  const surfaceTexture = createSurfaceTexture();
+  // 紙紋貼圖鋪滿的世界寬度（一格寬 2）。海面的摺痕比地面的顆粒大
+  const landDetail = surfaceDetail(surfaceTexture, 5);
+  const seaDetail = surfaceDetail(surfaceTexture, 9);
+  const paper = createPaperMaterial({ vertexColors: true, map: grain }, landDetail);
 
   const seaTexture = createSeaTexture();
   const sea = new THREE.Mesh(
-    new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE).rotateX(-Math.PI / 2),
-    new THREE.MeshLambertMaterial({ map: seaTexture }),
+    textured(new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE).rotateX(-Math.PI / 2), 'water'),
+    createPaperMaterial({ map: seaTexture }, seaDetail),
   );
   sea.receiveShadow = true;
   const isles = new THREE.Mesh(safeIsles(), paper);
@@ -236,6 +249,11 @@ export function createBoardScene(
     controls.update();
   }
 
+  function applySurfaceDetail() {
+    const strength = QUALITY[quality].surfaceDetail;
+    landDetail.detailStrength.value = seaDetail.detailStrength.value = strength;
+  }
+
   function applySize() {
     const ratio = Math.min(window.devicePixelRatio, QUALITY[quality].maxPixelRatio);
     renderer.setPixelRatio(ratio);
@@ -295,6 +313,7 @@ export function createBoardScene(
     }
   }
 
+  applySurfaceDetail();
   buildPieces('start');
   frame = requestAnimationFrame(render);
 
@@ -304,6 +323,7 @@ export function createBoardScene(
     setQuality(next) {
       quality = next;
       const { shadowMap } = QUALITY[next];
+      applySurfaceDetail();
       sun.castShadow = shadowMap > 0;
       if (shadowMap > 0 && sun.shadow.mapSize.x !== shadowMap) {
         sun.shadow.mapSize.set(shadowMap, shadowMap);
@@ -408,6 +428,7 @@ export function createBoardScene(
       seaTexture.dispose();
       paper.dispose();
       grain.dispose();
+      surfaceTexture.dispose();
       sun.shadow.map?.dispose();
       renderer.dispose();
     },

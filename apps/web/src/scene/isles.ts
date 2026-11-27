@@ -1,7 +1,7 @@
 /** 四角的安全島：分層的剪紙沙灘與草地、碼頭、樹，以及可上岸格的框線。 */
 import type * as THREE from 'three';
 import { HEX_RADIUS, PIERS, SAFE_ISLES, toWorld } from '../board/atlantis';
-import { ellipse, hexagon, jitter, merge, place, slab, type Point } from '../paper/cut';
+import { ellipse, hexagon, jitter, merge, place, slab, textured, type Point } from '../paper/cut';
 import { PALETTE } from '../paper/palette';
 import { tree } from '../paper/pieces';
 import { between, createRng } from '../paper/random';
@@ -16,10 +16,17 @@ export function safeIsles(): THREE.BufferGeometry {
     const sz = Math.sign(docks[0].r);
     const blob = (x: number, z: number, rx: number, rz: number) =>
       jitter(ellipse(sx * x, sz * z, rx, rz, 18), 0.16, rng, 2);
+    const shallows = slab(
+      blob(12.5, 10.2, 5.2, 4.6),
+      PALETTE.seaLight,
+      0.003,
+      0.012,
+      PALETTE.seaFoam,
+    );
     parts.push(
-      slab(blob(12.5, 10.2, 5.2, 4.6), PALETTE.seaLight, 0.003, 0.012, PALETTE.seaFoam),
-      slab(blob(12.5, 10.2, 4.7, 4.1), PALETTE.sand, 0.016, 0.044),
-      slab(blob(13.8, 11.3, 3.1, 2.7), PALETTE.grass, 0.062, 0.07),
+      textured(shallows, 'water'),
+      textured(slab(blob(12.5, 10.2, 4.7, 4.1), PALETTE.sand, 0.016, 0.044), 'sand'),
+      textured(slab(blob(13.8, 11.3, 3.1, 2.7), PALETTE.grass, 0.062, 0.07), 'grass'),
     );
     for (let i = 0; i < 9; i++) {
       parts.push(

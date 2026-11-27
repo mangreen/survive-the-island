@@ -10,10 +10,12 @@ import {
   merge,
   place,
   slab,
+  textured,
   type Point,
 } from './cut';
 import { PALETTE } from './palette';
 import { between, type Rng } from './random';
+import type { Surface } from './surfaces';
 import { HEX_RADIUS, type Terrain } from '../board/atlantis';
 
 /** 各地形板塊的紙層頂面高度，棋子站在這上面 */
@@ -48,7 +50,7 @@ export function tree(height: number, rng: Rng): THREE.BufferGeometry {
   const crown = cross(scallop(0, cy, r, 7, rng), PALETTE.leafDark, 0.035);
   // 內層較亮、稍厚，兩面都露出來，形成疊紙感
   const inner = cross(scallop(0, cy + r * 0.12, r * 0.68, 6, rng), PALETTE.leaf, 0.055);
-  return merge([trunk, crown, inner]);
+  return merge([trunk, textured(crown, 'grass'), textured(inner, 'grass')]);
 }
 
 /**
@@ -104,31 +106,33 @@ function mountainPeak(height: number, rng: Rng): THREE.BufferGeometry {
     [-0.21, 0.74],
     [-0.33, 0.64],
   ]);
+  const stone = (points: Point[], color: string, thickness: number, z: number) =>
+    textured(layer(points, color, thickness, z), 'rock');
   return merge([
-    layer(jitter(ridge, 0.02, rng, 2), PALETTE.rockDark, 0.05, -0.13),
-    layer(jitter(body, 0.022, rng, 2), PALETTE.rock, 0.07, 0),
-    layer(shade, PALETTE.rockShade, 0.02, 0.04),
+    stone(jitter(ridge, 0.02, rng, 2), PALETTE.rockDark, 0.05, -0.13),
+    stone(jitter(body, 0.022, rng, 2), PALETTE.rock, 0.07, 0),
+    stone(shade, PALETTE.rockShade, 0.02, 0.04),
     layer(snow, PALETTE.cream, 0.03, 0.065),
   ]);
 }
 
 export function tile(terrain: Terrain, rng: Rng): THREE.BufferGeometry {
-  const layer = (radius: number, color: string, y: number, thickness: number) =>
-    slab(jitter(hexagon(radius), 0.035, rng), color, y, thickness);
-  const parts = [layer(HEX_RADIUS * 0.93, PALETTE.sand, 0.02, 0.15)];
+  const layer = (radius: number, color: string, y: number, thickness: number, surface: Surface) =>
+    textured(slab(jitter(hexagon(radius), 0.035, rng), color, y, thickness), surface);
+  const parts = [layer(HEX_RADIUS * 0.93, PALETTE.sand, 0.02, 0.15, 'sand')];
   const scatter = (radius: number) => {
     const angle = rng() * Math.PI * 2;
     return [Math.cos(angle) * radius, Math.sin(angle) * radius] as const;
   };
 
   if (terrain === 'beach') {
-    parts.push(layer(HEX_RADIUS * 0.7, PALETTE.sandLight, 0.17, 0.07));
+    parts.push(layer(HEX_RADIUS * 0.7, PALETTE.sandLight, 0.17, 0.07, 'sand'));
     for (let i = 0; i < 4; i++) {
       const [x, z] = scatter(between(rng, 0.55, 0.75));
       parts.push(slab(ellipse(x, z, 0.09, 0.05, 7), PALETTE.sandDark, 0.17, 0.03));
     }
   } else if (terrain === 'forest') {
-    parts.push(layer(HEX_RADIUS * 0.82, PALETTE.grass, 0.17, 0.23));
+    parts.push(layer(HEX_RADIUS * 0.82, PALETTE.grass, 0.17, 0.23, 'grass'));
     // 左後、正後、右後各一棵（俯視角度 270 度是正後方）
     for (const degrees of [200, 270, 340]) {
       const angle = ((degrees + between(rng, -8, 8)) * Math.PI) / 180;
@@ -144,8 +148,8 @@ export function tile(terrain: Terrain, rng: Rng): THREE.BufferGeometry {
       );
     }
   } else {
-    parts.push(layer(HEX_RADIUS * 0.84, PALETTE.grass, 0.17, 0.15));
-    parts.push(layer(HEX_RADIUS * 0.68, PALETTE.rockLight, 0.32, 0.26));
+    parts.push(layer(HEX_RADIUS * 0.84, PALETTE.grass, 0.17, 0.15, 'grass'));
+    parts.push(layer(HEX_RADIUS * 0.68, PALETTE.rockLight, 0.32, 0.26, 'rock'));
     parts.push(
       place(
         mountainPeak(between(rng, 1, 1.15), rng),
@@ -264,7 +268,8 @@ function leanBack(figure: THREE.BufferGeometry): THREE.BufferGeometry {
 }
 
 function ripple(rx: number, rz: number): THREE.BufferGeometry {
-  return slab(ellipse(0, 0, rx, rz, 16), PALETTE.seaLight, 0, 0.025, PALETTE.seaFoam);
+  const water = slab(ellipse(0, 0, rx, rz, 16), PALETTE.seaLight, 0, 0.025, PALETTE.seaFoam);
+  return textured(water, 'water');
 }
 
 export function serpent(): THREE.BufferGeometry {

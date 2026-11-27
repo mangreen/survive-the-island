@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createRng } from './random';
+import { SURFACE_SIZE, createSurfaceData } from './surfaces';
 
 /** 程式產生的紙纖維紋理，不使用任何外部圖片 */
 export function createGrainTexture(size = 256): THREE.CanvasTexture {
@@ -30,6 +31,83 @@ export function createGrainTexture(size = 256): THREE.CanvasTexture {
   return texture;
 }
 
+export function createSurfaceTexture(): THREE.DataTexture {
+  const texture = new THREE.DataTexture(createSurfaceData(), SURFACE_SIZE, SURFACE_SIZE);
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.generateMipmaps = true;
+  texture.anisotropy = 4;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+export interface SurfaceDetail {
+  readonly detailMap: THREE.IUniform<THREE.Texture>;
+  /** 一個世界單位佔貼圖的比例：越小紋路越大 */
+  readonly detailScale: THREE.IUniform<number>;
+  /** 0 表示關閉；切換畫質時只改這個值，不用重新編譯 shader */
+  readonly detailStrength: THREE.IUniform<number>;
+}
+
+export const surfaceDetail = (map: THREE.Texture, tileSize: number): SurfaceDetail => ({
+  detailMap: { value: map },
+  detailScale: { value: 1 / tileSize },
+  detailStrength: { value: 0 },
+});
+
+/**
+ * 依頂點上的 surface 權重，用地面紙紋調整明暗。貼圖座標取世界位置：
+ * 相鄰板塊的紋路不會重複，正面朝鏡頭的立紙片（山）也不會拉成直條。
+ */
+function addSurfaceDetail(material: THREE.Material, detail: SurfaceDetail): void {
+  material.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, detail);
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        '#include <common>',
+        `#include <common>
+attribute vec4 surface;
+uniform float detailScale;
+varying vec4 vSurface;
+varying vec2 vDetailUv;`,
+      )
+      .replace(
+        '#include <project_vertex>',
+        `#include <project_vertex>
+vec4 detailPosition = vec4(transformed, 1.0);
+#ifdef USE_INSTANCING
+detailPosition = instanceMatrix * detailPosition;
+#endif
+detailPosition = modelMatrix * detailPosition;
+vSurface = surface;
+vDetailUv = vec2(detailPosition.x, detailPosition.z - detailPosition.y) * detailScale;`,
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        '#include <common>',
+        `#include <common>
+uniform sampler2D detailMap;
+uniform float detailStrength;
+varying vec4 vSurface;
+varying vec2 vDetailUv;`,
+      )
+      .replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
+float detail = dot(texture2D(detailMap, vDetailUv) - 128.0 / 255.0, vSurface);
+diffuseColor.rgb *= max(0.0, 1.0 + detail * detailStrength);`,
+      );
+  };
+  material.customProgramCacheKey = () => 'paper-surface-detail';
+}
+
 /** 全霧面：只有漫射光，沒有高光與反射 */
-export const createPaperMaterial = (grain: THREE.Texture): THREE.MeshLambertMaterial =>
-  new THREE.MeshLambertMaterial({ vertexColors: true, map: grain });
+export function createPaperMaterial(
+  parameters: THREE.MeshLambertMaterialParameters,
+  detail: SurfaceDetail,
+): THREE.MeshLambertMaterial {
+  const material = new THREE.MeshLambertMaterial(parameters);
+  addSurfaceDetail(material, detail);
+  return material;
+}
