@@ -1,0 +1,28 @@
+# 本機開發用 Compose。
+#
+# 相容性：Docker Desktop 4.12 / Compose v2.10.2。
+# 刻意只用舊版就支援的語法，不使用 develop.watch、include 等較新欄位。
+#
+# 對外埠預設只綁 127.0.0.1。要用同一個區網的手機測試時：
+#   BIND_ADDR=0.0.0.0 make dev
+# 測完請改回預設。
+
+services:
+  web:
+    build:
+      context: .
+      target: dev
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-node:22-alpine}
+    # --host 讓容器外連得到；實際對外範圍由下面的 ports 決定
+    command: ['pnpm', '--filter', '@sti/web', 'dev', '--host', '0.0.0.0']
+    environment:
+      VITE_USE_POLLING: 'true'
+    ports:
+      - '${BIND_ADDR:-127.0.0.1}:${WEB_PORT:-5173}:5173'
+    # 只掛載原始碼。node_modules 留在映像裡，不會被主機目錄蓋掉；
+    # 改了依賴後 make dev 會重新建置映像。
+    volumes:
+      - ./apps/web/src:/app/apps/web/src
+      - ./apps/web/index.html:/app/apps/web/index.html
+      - ./apps/web/vite.config.ts:/app/apps/web/vite.config.ts
