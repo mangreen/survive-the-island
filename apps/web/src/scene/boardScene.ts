@@ -4,7 +4,17 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CELLS, HEX_RADIUS, toWorld, type Hex, type Terrain } from '../board/atlantis';
 import { createGrainTexture, createPaperMaterial } from '../paper/material';
 import { PALETTE, PLAYER_COLORS } from '../paper/palette';
-import { TILE_TOP, boat, explorer, serpent, shark, tile, whale } from '../paper/pieces';
+import {
+  EXPLORER_ON_TILE,
+  TILE_TOP,
+  TILE_YAW,
+  boat,
+  explorer,
+  serpent,
+  shark,
+  tile,
+  whale,
+} from '../paper/pieces';
 import { createRng } from '../paper/random';
 import { demoLayout, type Load } from './demoLayout';
 import { fitCamera } from './fitCamera';
@@ -113,9 +123,9 @@ export function createBoardScene(
 
   const rng = createRng(5);
   const TERRAINS: readonly Terrain[] = ['beach', 'forest', 'mountain'];
-  // 每種地形剪三個版本，用 instancing 畫，draw call 不隨板塊數增加
+  // 每種地形剪幾個版本，用 instancing 畫，draw call 不隨板塊數增加
   const tileVariants = new Map(
-    TERRAINS.map((terrain) => [terrain, [0, 1, 2].map(() => tile(terrain, rng))]),
+    TERRAINS.map((terrain) => [terrain, Array.from({ length: 4 }, () => tile(terrain, rng))]),
   );
   const explorerShapes = PLAYER_COLORS.map((color) => explorer(color));
   const boatShape = boat();
@@ -158,7 +168,7 @@ export function createBoardScene(
       const geometry = variants[Math.floor(placeRng() * variants.length)]!;
       const { x, z } = toWorld(hex);
       const list = tileMatrices.get(geometry) ?? [];
-      list.push(at(x, 0, z, (Math.floor(placeRng() * 6) * Math.PI) / 3));
+      list.push(at(x, 0, z, TILE_YAW));
       tileMatrices.set(geometry, list);
       heights.set(`${hex.c},${hex.r}`, TILE_TOP[terrain]);
     }
@@ -169,7 +179,9 @@ export function createBoardScene(
       const { x, z } = toWorld(hex);
       const y = onTile ? (heights.get(`${hex.c},${hex.r}`) ?? 0) : 0;
       // 站在板塊前半部，避免被樹和山擋住
-      byPlayer[player]!.push(at(x, y, z + 0.38, (placeRng() - 0.5) * 0.7, 1.38));
+      const { offsetZ, scale, yawRange } = EXPLORER_ON_TILE;
+      const yaw = (placeRng() - 0.5) * 2 * yawRange;
+      byPlayer[player]!.push(at(x, y, z + offsetZ, yaw, scale));
     }
     byPlayer.forEach((matrices, i) => instances(explorerShapes[i]!, matrices));
 

@@ -51,38 +51,65 @@ export function tree(height: number, rng: Rng): THREE.BufferGeometry {
   return merge([trunk, crown, inner]);
 }
 
+/**
+ * 板塊不旋轉：人物站前半部（+z，靠鏡頭那側），樹和山固定在後半部。
+ * 畫面變化靠多剪幾個版本。
+ */
+export const TILE_YAW = 0;
+
+/** 人物站在板塊上的位置（相對板塊中心）與大小；yawRange 是左右轉動的最大角度 */
+export const EXPLORER_ON_TILE = { offsetZ: 0.38, scale: 1.38, yawRange: 0.35 } as const;
+
+/** 正面朝鏡頭的疊層山形紙片（像立體書的一層層山景），不往前後延伸，才不會擋到人 */
 function mountainPeak(height: number, rng: Rng): THREE.BufferGeometry {
-  const w = 0.7;
-  const body = cross(
-    jitter(
-      [
-        [-w, 0],
-        [w, 0],
-        [w * 0.45, height * 0.5],
-        [w * 0.08, height],
-        [-w * 0.2, height * 0.7],
-        [-w * 0.5, height * 0.52],
-      ],
-      0.025,
-      rng,
-      2,
-    ),
-    PALETTE.rock,
-    0.045,
-  );
-  const snow = cross(
-    [
-      [w * 0.08, height * 1.01],
-      [w * 0.34, height * 0.66],
-      [w * 0.14, height * 0.74],
-      [0, height * 0.6],
-      [-w * 0.12, height * 0.74],
-      [-w * 0.25, height * 0.62],
-    ],
-    PALETTE.cream,
-    0.065,
-  );
-  return merge([body, snow]);
+  // 隨機左右鏡射：矮峰在其中一側
+  const side = rng() < 0.5 ? -1 : 1;
+  const shape = (points: readonly Point[]): Point[] =>
+    points.map(([x, y]): Point => [side * x, y * height]);
+  const layer = (points: Point[], color: string, thickness: number, z: number) => {
+    const geometry = card(points, color, thickness);
+    geometry.translate(0, 0, z);
+    return geometry;
+  };
+  const ridge = shape([
+    [0.02, 0],
+    [0.74, 0],
+    [0.44, 0.76],
+    [0.3, 0.6],
+    [0.2, 0.66],
+  ]);
+  const body = shape([
+    [-0.7, 0],
+    [0.5, 0],
+    [0.24, 0.5],
+    [0.12, 0.56],
+    [-0.14, 1],
+    [-0.36, 0.6],
+    [-0.46, 0.62],
+  ]);
+  // 背光面讓兩座山峰分得開
+  const shade = shape([
+    [-0.14, 0.98],
+    [0.12, 0.55],
+    [0.24, 0.49],
+    [0.49, 0.01],
+    [0.08, 0.01],
+    [-0.04, 0.5],
+  ]);
+  const snow = shape([
+    [-0.14, 1.02],
+    [0.07, 0.66],
+    [-0.04, 0.73],
+    [-0.13, 0.6],
+    [-0.21, 0.74],
+    [-0.33, 0.64],
+  ]);
+  return merge([
+    layer(jitter(ridge, 0.02, rng, 2), PALETTE.rockDark, 0.05, -0.13),
+    layer(jitter(body, 0.022, rng, 2), PALETTE.rock, 0.07, 0),
+    layer(shade, PALETTE.rockShade, 0.02, 0.04),
+    layer(snow, PALETTE.cream, 0.03, 0.065),
+  ]);
 }
 
 export function tile(terrain: Terrain, rng: Rng): THREE.BufferGeometry {
@@ -102,15 +129,16 @@ export function tile(terrain: Terrain, rng: Rng): THREE.BufferGeometry {
     }
   } else if (terrain === 'forest') {
     parts.push(layer(HEX_RADIUS * 0.82, PALETTE.grass, 0.17, 0.23));
-    const base = rng() * Math.PI * 2;
-    for (let i = 0; i < 3; i++) {
-      const angle = base + i * between(rng, 0.7, 1);
+    // 左後、正後、右後各一棵（俯視角度 270 度是正後方）
+    for (const degrees of [200, 270, 340]) {
+      const angle = ((degrees + between(rng, -8, 8)) * Math.PI) / 180;
+      const radius = between(rng, 0.58, 0.66);
       parts.push(
         place(
           tree(between(rng, 0.62, 0.85), rng),
-          Math.cos(angle) * 0.55,
+          Math.cos(angle) * radius,
           TILE_TOP.forest,
-          Math.sin(angle) * 0.55,
+          Math.sin(angle) * radius,
           rng() * Math.PI,
         ),
       );
@@ -118,14 +146,13 @@ export function tile(terrain: Terrain, rng: Rng): THREE.BufferGeometry {
   } else {
     parts.push(layer(HEX_RADIUS * 0.84, PALETTE.grass, 0.17, 0.15));
     parts.push(layer(HEX_RADIUS * 0.68, PALETTE.rockLight, 0.32, 0.26));
-    const angle = rng() * Math.PI * 2;
     parts.push(
       place(
-        mountainPeak(between(rng, 0.85, 1.05), rng),
-        Math.cos(angle) * 0.2,
+        mountainPeak(between(rng, 1, 1.15), rng),
+        between(rng, -0.08, 0.08),
         TILE_TOP.mountain,
-        Math.sin(angle) * 0.2,
-        rng() * Math.PI,
+        between(rng, -0.4, -0.3),
+        between(rng, -0.22, 0.22),
       ),
     );
   }
