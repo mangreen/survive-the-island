@@ -5,6 +5,7 @@ import {
   SAFE_ISLES,
   SERPENT_STARTS,
   TERRAIN_COUNTS,
+  PIERS,
   hexKey,
   toWorld,
 } from './atlantis';
@@ -37,6 +38,18 @@ describe('Atlantis 棋盤', () => {
       expect(keys.has(hexKey(hex))).toBe(true);
       expect(island.has(hexKey(hex))).toBe(false);
     }
+  });
+
+  // 回歸：棧橋曾經和海蛇起點畫在同一格（左上、右下）
+  it('每座安全島的兩格中，一格放海蛇、棧橋在另一格', () => {
+    const serpents = new Set(SERPENT_STARTS.map(hexKey));
+    SAFE_ISLES.forEach((docks, i) => {
+      expect(docks.filter((hex) => serpents.has(hexKey(hex)))).toHaveLength(1);
+      expect(docks.map(hexKey)).toContain(hexKey(PIERS[i]!));
+      expect(serpents.has(hexKey(PIERS[i]!))).toBe(false);
+    });
+    // 依實物棋盤：左上、右上、左下、右下
+    expect(PIERS.map(hexKey)).toEqual(['-10,-4', '9,-5', '-9,5', '10,4']);
   });
 
   it('相鄰格的中心距離一致', () => {

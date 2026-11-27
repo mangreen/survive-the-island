@@ -1,6 +1,6 @@
 /** 四角的安全島：分層的剪紙沙灘與草地、碼頭、樹，以及可上岸格的框線。 */
 import type * as THREE from 'three';
-import { HEX_RADIUS, SAFE_ISLES, toWorld } from '../board/atlantis';
+import { HEX_RADIUS, PIERS, SAFE_ISLES, toWorld } from '../board/atlantis';
 import { ellipse, hexagon, jitter, merge, place, slab, type Point } from '../paper/cut';
 import { PALETTE } from '../paper/palette';
 import { tree } from '../paper/pieces';
@@ -11,7 +11,7 @@ export const ISLE_TOP = 0.1;
 export function safeIsles(): THREE.BufferGeometry {
   const rng = createRng(11);
   const parts: THREE.BufferGeometry[] = [];
-  for (const docks of SAFE_ISLES) {
+  for (const [isle, docks] of SAFE_ISLES.entries()) {
     const sx = Math.sign(docks[0].c);
     const sz = Math.sign(docks[0].r);
     const blob = (x: number, z: number, rx: number, rz: number) =>
@@ -47,8 +47,7 @@ export function safeIsles(): THREE.BufferGeometry {
       });
     }
 
-    // 碼頭畫在其中一個上岸格
-    const pier = toWorld(docks[0]);
+    const pier = toWorld(PIERS[isle]!);
     for (let i = 0; i < 6; i++) {
       const px = pier.x - sx * (i * 0.2 - 0.5);
       const pz = pier.z - sz * (i * 0.17 - 0.45);

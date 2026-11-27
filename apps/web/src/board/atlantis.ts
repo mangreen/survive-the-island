@@ -58,6 +58,11 @@ export const SERPENT_STARTS: readonly Hex[] = [
   { c: 0, r: 0 },
 ];
 
+/** 棧橋畫在每座安全島沒有海蛇的那一格（順序同 SAFE_ISLES） */
+export const PIERS: readonly Hex[] = SAFE_ISLES.map((docks) =>
+  docks.find((dock) => !SERPENT_STARTS.some((s) => hexKey(s) === hexKey(dock)))!,
+);
+
 export type Terrain = 'beach' | 'forest' | 'mountain';
 
 export const TERRAIN_COUNTS: Readonly<Record<Terrain, number>> = {
