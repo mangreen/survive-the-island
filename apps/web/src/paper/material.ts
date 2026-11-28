@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createRng } from './random';
+import { MASK_HALF, MASK_SIZE } from './strengthMap';
 import { SURFACE_SIZE, createSurfaceData } from './surfaces';
 
 /** 程式產生的紙纖維紋理，不使用任何外部圖片 */
@@ -42,16 +43,31 @@ export function createSurfaceTexture(): THREE.DataTexture {
   return texture;
 }
 
+/** 紙紋濃淡分布圖，內容由 createStrengthData 產生；超出範圍沿用邊緣值 */
+export function createStrengthTexture(data: Uint8Array): THREE.DataTexture {
+  const texture = new THREE.DataTexture(data, MASK_SIZE, MASK_SIZE, THREE.RedFormat);
+  texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.magFilter = texture.minFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+  return texture;
+}
+
 export interface SurfaceDetail {
   readonly detailMap: THREE.IUniform<THREE.Texture>;
+  readonly strengthMap: THREE.IUniform<THREE.Texture>;
   /** 一個世界單位佔貼圖的比例：越小紋路越大 */
   readonly detailScale: THREE.IUniform<number>;
   /** 0 表示關閉；切換畫質時只改這個值，不用重新編譯 shader */
   readonly detailStrength: THREE.IUniform<number>;
 }
 
-export const surfaceDetail = (map: THREE.Texture, tileSize: number): SurfaceDetail => ({
+export const surfaceDetail = (
+  map: THREE.Texture,
+  strengths: THREE.Texture,
+  tileSize: number,
+): SurfaceDetail => ({
   detailMap: { value: map },
+  strengthMap: { value: strengths },
   detailScale: { value: 1 / tileSize },
   detailStrength: { value: 0 },
 });
@@ -70,7 +86,8 @@ function addSurfaceDetail(material: THREE.Material, detail: SurfaceDetail): void
 attribute vec4 surface;
 uniform float detailScale;
 varying vec4 vSurface;
-varying vec2 vDetailUv;`,
+varying vec2 vDetailUv;
+varying vec2 vStrengthUv;`,
       )
       .replace(
         '#include <project_vertex>',
@@ -81,22 +98,26 @@ detailPosition = instanceMatrix * detailPosition;
 #endif
 detailPosition = modelMatrix * detailPosition;
 vSurface = surface;
-vDetailUv = vec2(detailPosition.x, detailPosition.z - detailPosition.y) * detailScale;`,
+vDetailUv = vec2(detailPosition.x, detailPosition.z - detailPosition.y) * detailScale;
+vStrengthUv = (detailPosition.xz + ${MASK_HALF.toFixed(1)}) / ${(MASK_HALF * 2).toFixed(1)};`,
       );
     shader.fragmentShader = shader.fragmentShader
       .replace(
         '#include <common>',
         `#include <common>
 uniform sampler2D detailMap;
+uniform sampler2D strengthMap;
 uniform float detailStrength;
 varying vec4 vSurface;
-varying vec2 vDetailUv;`,
+varying vec2 vDetailUv;
+varying vec2 vStrengthUv;`,
       )
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
 float detail = dot(texture2D(detailMap, vDetailUv) - 128.0 / 255.0, vSurface);
-diffuseColor.rgb *= max(0.0, 1.0 + detail * detailStrength);`,
+float localStrength = texture2D(strengthMap, vStrengthUv).r;
+diffuseColor.rgb *= max(0.0, 1.0 + detail * detailStrength * localStrength);`,
       );
   };
   material.customProgramCacheKey = () => 'paper-surface-detail';

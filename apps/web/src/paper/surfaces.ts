@@ -52,7 +52,7 @@ function stroke(
 }
 
 /** 週期性的平滑雜訊，cellsX × cellsY 個格子剛好鋪滿一張貼圖 */
-function valueNoise(size: number, cellsX: number, cellsY: number, rng: Rng): Field {
+export function valueNoise(size: number, cellsX: number, cellsY: number, rng: Rng): Field {
   const lattice = Array.from({ length: cellsX * cellsY }, () => rng());
   const at = (x: number, y: number) => lattice[wrap(y, cellsY) * cellsX + wrap(x, cellsX)]!;
   const smooth = (t: number) => t * t * (3 - 2 * t);

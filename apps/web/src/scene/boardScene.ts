@@ -1,11 +1,12 @@
 /** M0 效能原型的 three.js 場景。React 只透過 BoardScene 介面控制它。 */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { CELLS, HEX_RADIUS, toWorld, type Hex, type Terrain } from '../board/atlantis';
+import { CELLS, HEX_RADIUS, hexKey, toWorld, type Hex, type Terrain } from '../board/atlantis';
 import { textured } from '../paper/cut';
 import {
   createGrainTexture,
   createPaperMaterial,
+  createStrengthTexture,
   createSurfaceTexture,
   surfaceDetail,
 } from '../paper/material';
@@ -22,6 +23,7 @@ import {
   whale,
 } from '../paper/pieces';
 import { createRng } from '../paper/random';
+import { createStrengthData } from '../paper/strengthMap';
 import { demoLayout, type Load } from './demoLayout';
 import { fitCamera } from './fitCamera';
 import { summarizeFrames, type FrameSummary } from './frameStats';
@@ -118,8 +120,11 @@ export function createBoardScene(
   const grain = createGrainTexture();
   const surfaceTexture = createSurfaceTexture();
   // 紙紋貼圖鋪滿的世界寬度（一格寬 2）。海面的摺痕比地面的顆粒大
-  const landDetail = surfaceDetail(surfaceTexture, 5);
-  const seaDetail = surfaceDetail(surfaceTexture, 9);
+  // 內容在 buildPieces 依盤面更新
+  const strengthData = createStrengthData(CELLS, new Set());
+  const strengthTexture = createStrengthTexture(strengthData);
+  const landDetail = surfaceDetail(surfaceTexture, strengthTexture, 5);
+  const seaDetail = surfaceDetail(surfaceTexture, strengthTexture, 9);
   const paper = createPaperMaterial({ vertexColors: true, map: grain }, landDetail);
 
   const seaTexture = createSeaTexture();
@@ -172,6 +177,17 @@ export function createBoardScene(
     pieces.clear();
     floating = [];
     const layout = demoLayout(load, 2026);
+    const occupied = new Set(
+      [
+        ...layout.explorers.map(({ hex }) => hex),
+        ...layout.boats,
+        ...layout.serpents,
+        ...layout.sharks,
+        ...layout.whales,
+      ].map(hexKey),
+    );
+    strengthData.set(createStrengthData(CELLS, occupied));
+    strengthTexture.needsUpdate = true;
     const placeRng = createRng(99);
 
     const tileMatrices = new Map<THREE.BufferGeometry, THREE.Matrix4[]>();
@@ -429,6 +445,7 @@ export function createBoardScene(
       paper.dispose();
       grain.dispose();
       surfaceTexture.dispose();
+      strengthTexture.dispose();
       sun.shadow.map?.dispose();
       renderer.dispose();
     },
