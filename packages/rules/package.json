@@ -1,0 +1,17 @@
+{
+  "name": "@sti/rules",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "純函式規則引擎：狀態＋動作 → 新狀態＋事件",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^5.1.2"
+  }
+}

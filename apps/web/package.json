@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@sti/rules": "workspace:*",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "three": "0.187.0"

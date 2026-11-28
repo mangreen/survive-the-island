@@ -20,6 +20,7 @@
 ## 結構
 
 - `apps/web/`：前端（Vite、React HUD、three.js 場景）
+- `packages/rules/`：規則引擎（不依賴任何執行期套件）
 - `docs/adr/`：重大且不易逆轉的決策
 - `docs/runbooks/`：可重複的操作步驟
 - `.claude/skills/papercraft/`：引入並固定版本的美術方法（見其 `VENDORED.md`）
