@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { PALETTE } from './palette';
 import { between, type Rng } from './random';
+import { SURFACES, type Surface } from './surfaces';
 
 export type Point = readonly [number, number];
 
@@ -50,7 +51,25 @@ function paint(geometry: THREE.BufferGeometry, face: string, edge: string): void
     for (let i = group.start; i < group.start + group.count; i++) color.toArray(colors, i * 3);
   }
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  // 預設是素面紙；textured() 才會標上地面紙紋
+  addSurfaceAttribute(geometry);
   geometry.clearGroups();
+}
+
+function addSurfaceAttribute(geometry: THREE.BufferGeometry): THREE.BufferAttribute {
+  const weights = new Uint8Array(geometry.getAttribute('position').count * SURFACES.length);
+  const attribute = new THREE.BufferAttribute(weights, SURFACES.length, true);
+  geometry.setAttribute('surface', attribute);
+  return attribute;
+}
+
+/** 把整片紙標成某種地面紙紋（只有高畫質看得到） */
+export function textured<T extends THREE.BufferGeometry>(geometry: T, surface: Surface): T {
+  const existing = geometry.getAttribute('surface') as THREE.BufferAttribute | undefined;
+  const attribute = existing ?? addSurfaceAttribute(geometry);
+  const channel = SURFACES.indexOf(surface);
+  for (let i = 0; i < attribute.count; i++) attribute.setComponent(i, channel, 1);
+  return geometry;
 }
 
 export const edgeOf = (face: string): string =>
