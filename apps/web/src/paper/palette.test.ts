@@ -53,27 +53,39 @@ describe('配色辨識度', () => {
   });
 
   it.each([
-    ['海蛇的紅色背刺', PALETTE.serpentCrest, PALETTE.serpent, 15, 35],
-    ['鯊魚的亮綠色鰭', PALETTE.sharkAccent, PALETTE.shark, 125, 165],
-    ['鯨魚的亮藍色水柱', PALETTE.whaleAccent, PALETTE.whale, 200, 265],
-  ])('%s夠鮮豔，在海面和身體上都跳得出來', (_, accent, body, hueFrom, hueTo) => {
-    expect(chroma(accent)).toBeGreaterThanOrEqual(0.12);
-    expect(hue(accent)).toBeGreaterThanOrEqual(hueFrom);
-    expect(hue(accent)).toBeLessThanOrEqual(hueTo);
-    expect(closest(accent, SEA)).toBeGreaterThanOrEqual(19);
-    expect(distance(accent, body)).toBeGreaterThanOrEqual(15);
+    ['海蛇背鰭的紅線', PALETTE.serpentStripe, 15, 35],
+    ['鯨魚水柱的藍線', PALETTE.whaleStripe, 225, 270],
+  ])('%s夠鮮豔，畫在白底上清楚', (_, stripe, hueFrom, hueTo) => {
+    expect(chroma(stripe)).toBeGreaterThanOrEqual(0.18);
+    expect(hue(stripe)).toBeGreaterThanOrEqual(hueFrom);
+    expect(hue(stripe)).toBeLessThanOrEqual(hueTo);
+    expect(distance(stripe, PALETTE.finWhite)).toBeGreaterThanOrEqual(35);
+  });
+
+  it('背鰭和水柱的白底在海面、身體上都跳得出來', () => {
+    expect(closest(PALETTE.finWhite, SEA)).toBeGreaterThanOrEqual(30);
+    expect(distance(PALETTE.finWhite, PALETTE.serpent)).toBeGreaterThanOrEqual(40);
+    expect(distance(PALETTE.finWhite, PALETTE.whale)).toBeGreaterThanOrEqual(40);
+  });
+
+  it('鯊魚的反光是亮綠色，在灰綠皮膚上看得出來', () => {
+    expect(chroma(PALETTE.sharkSheen)).toBeGreaterThanOrEqual(0.15);
+    expect(hue(PALETTE.sharkSheen)).toBeGreaterThanOrEqual(125);
+    expect(hue(PALETTE.sharkSheen)).toBeLessThanOrEqual(165);
+    expect(distance(PALETTE.sharkSheen, PALETTE.shark)).toBeGreaterThanOrEqual(15);
+    expect(distance(PALETTE.sharkSheen, PALETTE.sharkBack)).toBeGreaterThanOrEqual(25);
   });
 
   it('紅色人物不會跟海蛇混淆', () => {
     const red = PLAYER_COLORS[0];
     expect(distance(red, PALETTE.serpent)).toBeGreaterThanOrEqual(25);
-    expect(distance(red, PALETTE.serpentCrest)).toBeGreaterThanOrEqual(14);
+    expect(distance(red, PALETTE.serpentStripe)).toBeGreaterThanOrEqual(14);
   });
 
   it('藍色人物不會跟鯨魚混淆', () => {
     const blue = PLAYER_COLORS[1];
     expect(distance(blue, PALETTE.whale)).toBeGreaterThanOrEqual(22);
-    expect(distance(blue, PALETTE.whaleAccent)).toBeGreaterThanOrEqual(12);
+    expect(distance(blue, PALETTE.finWhite)).toBeGreaterThanOrEqual(20);
   });
 
   it('紫色人物夠亮', () => {

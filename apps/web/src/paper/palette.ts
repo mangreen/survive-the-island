@@ -22,17 +22,18 @@ export const PALETTE = {
   woodDark: '#8d5630',
   // 生物顏色所有版本統一：海蛇紅、鯊魚綠、鯨魚藍、怪獸紫（怪獸模型到 Island 版才做）
   serpent: '#8c1f2f',
-  // 每種生物配一個鮮豔的重點色，遠看也認得出是哪一色的生物
-  serpentCrest: '#f5142c',
+  // 每種生物配一個鮮豔的重點色，只做點綴：背鰭和水柱是白底彩線，鯊魚是皮膚反光
+  finWhite: '#fbf6ea',
+  serpentStripe: '#f5142c',
   serpentEye: '#f4ead2',
   // 淺灰綠身體、深一點的背、灰白肚子：像真鯊魚上深下淺，又認得出是綠色生物
   shark: '#96b88e',
   sharkBack: '#64855d',
   sharkBelly: '#e6e8da',
-  sharkAccent: '#6ee62a',
+  sharkSheen: '#8cf56a',
   sharkMouth: '#8c2b33',
   whale: '#27408f',
-  whaleAccent: '#38c8ff',
+  whaleStripe: '#0a7cff',
   belly: '#e6e0cf',
   skin: '#f0c9a0',
 } as const;

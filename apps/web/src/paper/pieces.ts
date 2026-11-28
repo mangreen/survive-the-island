@@ -267,6 +267,24 @@ function leanBack(figure: THREE.BufferGeometry): THREE.BufferGeometry {
   return figure;
 }
 
+/** 沿折線剪出一條紙條，寬度從起點到終點漸漸收窄 */
+function ribbon(path: readonly Point[], width: number, endWidth = width * 0.35): Point[] {
+  const sides = path.map(([x, y], i) => {
+    const before = path[Math.max(0, i - 1)]!;
+    const after = path[Math.min(path.length - 1, i + 1)]!;
+    const length = Math.hypot(after[0] - before[0], after[1] - before[1]);
+    const half = (width + (endWidth - width) * (i / (path.length - 1))) / 2;
+    const nx = (-(after[1] - before[1]) / length) * half;
+    const ny = ((after[0] - before[0]) / length) * half;
+    return { left: [x + nx, y + ny] as Point, right: [x - nx, y - ny] as Point };
+  });
+  return [...sides.map((side) => side.left), ...sides.map((side) => side.right).reverse()];
+}
+
+/** 貼在紙片上的彩色線條：比底紙厚一點，兩面都看得到；切邊同色才不會發黑 */
+const stripe = (points: readonly Point[], color: string, thickness: number) =>
+  card(points, color, thickness, color);
+
 function ripple(rx: number, rz: number): THREE.BufferGeometry {
   const water = slab(ellipse(0, 0, rx, rz, 16), PALETTE.seaLight, 0, 0.025, PALETTE.seaFoam);
   return textured(water, 'water');
@@ -298,29 +316,50 @@ export function serpent(): THREE.BufferGeometry {
     [0.34, 0.74],
     [0.3, 0.45],
   ];
-  /** 亮紅色背刺：在海面上最顯眼，也一眼看出是紅色生物 */
-  const spike = (points: Point[]) => card(points, PALETTE.serpentCrest, 0.06);
+  /** 白底背鰭：在海面上最顯眼；紅線順著鰭的方向，一眼看出是紅色生物 */
+  const fin = (points: Point[]) => card(points, PALETTE.finWhite, 0.06);
+  const ray = (points: Point[]) => stripe(points, PALETTE.serpentStripe, 0.078);
   const humpSpikes = (x: number, r: number) =>
-    [55, 90, 125].map((degrees) => {
+    [55, 90, 125].flatMap((degrees) => {
       const at = (offset: number, radius: number): Point => {
         const a = ((degrees + offset) * Math.PI) / 180;
         return [x + Math.cos(a) * radius, Math.sin(a) * radius];
       };
-      return spike([at(-14, r * 0.94), at(0, r + 0.15), at(14, r * 0.94)]);
+      return [
+        fin([at(-15, r * 0.94), at(0, r + 0.17), at(15, r * 0.94)]),
+        ray([at(-6.5, r * 0.94), at(0, r + 0.165), at(6.5, r * 0.94)]),
+      ];
     });
   const figure = merge([
     ...humpSpikes(-0.55, 0.22),
     ...humpSpikes(-0.07, 0.32),
-    spike([
-      [0.32, 0.38],
-      [0.14, 0.56],
-      [0.32, 0.59],
+    // 頸後的扇形鰭
+    fin([
+      [0.33, 0.34],
+      [0.07, 0.52],
+      [0.21, 0.57],
+      [0.05, 0.76],
+      [0.22, 0.76],
+      [0.15, 0.99],
+      [0.43, 0.82],
+      [0.33, 0.6],
     ]),
-    spike([
-      [0.32, 0.62],
-      [0.18, 0.88],
-      [0.41, 0.78],
-    ]),
+    ...(
+      [
+        [
+          [0.32, 0.44],
+          [0.085, 0.52],
+        ],
+        [
+          [0.32, 0.6],
+          [0.065, 0.755],
+        ],
+        [
+          [0.35, 0.745],
+          [0.165, 0.968],
+        ],
+      ] as Point[][]
+    ).map((line) => ray(ribbon(line, 0.065, 0.014))),
     hump(-0.55, 0.22),
     hump(-0.07, 0.32),
     cross(
@@ -424,7 +463,7 @@ export function shark(): THREE.BufferGeometry {
         [-0.42, 0.72],
         [-0.1, 0.66],
       ],
-      PALETTE.sharkAccent,
+      PALETTE.sharkBack,
       0.09,
     ),
     // 眼睛和壓低的眉毛
@@ -464,8 +503,52 @@ export function shark(): THREE.BufferGeometry {
         [-1.1, 0.5],
         [-1, 0.2],
       ],
-      PALETTE.sharkAccent,
+      PALETTE.sharkBack,
       0.08,
+    ),
+    // 濕皮膚的亮綠反光：背脊、吻部、背鰭前緣、尾鰭上葉
+    ...(
+      [
+        [
+          [
+            [-0.2, 0.46],
+            [-0.06, 0.66],
+            [0.11, 0.84],
+            [0.2, 0.9],
+          ],
+          0.055,
+          0.14,
+        ],
+        [
+          [
+            [0.47, 1.045],
+            [0.6, 1.082],
+            [0.7, 1.09],
+          ],
+          0.032,
+          0.14,
+        ],
+        [
+          [
+            [-0.15, 0.628],
+            [-0.42, 0.687],
+            [-0.69, 0.742],
+          ],
+          0.05,
+          0.105,
+        ],
+        [
+          [
+            [-0.97, 0.19],
+            [-1.02, 0.31],
+            [-1.075, 0.45],
+          ],
+          0.042,
+          0.095,
+        ],
+      ] as [Point[], number, number][]
+    ).map(([path, width, thickness]) =>
+      stripe(ribbon(path, width, 0.008), PALETTE.sharkSheen, thickness),
     ),
   ]);
   figure.translate(0.15, 0, 0);
@@ -508,28 +591,59 @@ export function whale(): THREE.BufferGeometry {
     PALETTE.cream,
     0.24,
   );
-  const spout = card(
+  const fountain = card(
     [
-      [0.2, 0.52],
-      [0.3, 0.52],
-      [0.32, 0.8],
-      [0.56, 0.98],
-      [0.54, 0.8],
-      [0.48, 0.86],
+      [0.18, 0.52],
+      [0.32, 0.52],
+      [0.33, 0.77],
+      [0.44, 0.88],
+      [0.55, 0.87],
+      [0.62, 0.74],
+      [0.68, 0.91],
+      [0.57, 1.03],
+      [0.42, 1.03],
       [0.34, 0.95],
-      [0.36, 1.12],
-      [0.25, 0.98],
-      [0.14, 1.12],
+      [0.36, 1.07],
+      [0.25, 1.19],
+      [0.14, 1.07],
       [0.16, 0.95],
-      [0.02, 0.86],
-      [-0.04, 0.8],
-      [-0.06, 0.98],
-      [0.18, 0.8],
+      [0.08, 1.03],
+      [-0.07, 1.03],
+      [-0.18, 0.91],
+      [-0.12, 0.74],
+      [-0.05, 0.87],
+      [0.06, 0.88],
+      [0.17, 0.77],
     ],
-    PALETTE.whaleAccent,
+    PALETTE.finWhite,
     0.07,
   );
-  // 以噴氣孔為中心放大，遠看才認得出藍色重點
+  // 水流線從噴氣孔往三個方向散開
+  const flows = (
+    [
+      [
+        [0.25, 0.55],
+        [0.25, 0.85],
+        [0.25, 1.15],
+      ],
+      [
+        [0.27, 0.62],
+        [0.31, 0.83],
+        [0.43, 0.955],
+        [0.56, 0.955],
+        [0.625, 0.84],
+      ],
+      [
+        [0.23, 0.62],
+        [0.19, 0.83],
+        [0.07, 0.955],
+        [-0.06, 0.955],
+        [-0.125, 0.84],
+      ],
+    ] as Point[][]
+  ).map((path) => stripe(ribbon(path, 0.052, 0.022), PALETTE.whaleStripe, 0.086));
+  const spout = merge([fountain, ...flows]);
+  // 以噴氣孔為中心放大，遠看才認得出藍色線條
   spout.translate(-0.25, -0.52, 0).scale(1.25, 1.25, 1).translate(0.25, 0.52, 0);
   return merge([ripple(0.9, 0.45), leanBack(merge([profile, belly, eye, mouth, spout]))]);
 }
