@@ -20,6 +20,14 @@ export default tseslint.config(
     languageOptions: { globals: globals.node },
   },
   {
+    // 規則引擎要能重播：不碰時間和不受控的亂數
+    files: ['packages/rules/src/**/*.ts'],
+    rules: {
+      'no-restricted-properties': ['error', { object: 'Math', property: 'random' }],
+      'no-restricted-globals': ['error', 'Date', 'performance', 'crypto', 'setTimeout'],
+    },
+  },
+  {
     files: ['apps/web/src/**/*.{ts,tsx}'],
     languageOptions: { globals: globals.browser },
     plugins: { 'react-hooks': reactHooks },

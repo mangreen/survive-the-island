@@ -26,3 +26,4 @@ services:
       - ./apps/web/src:/app/apps/web/src
       - ./apps/web/index.html:/app/apps/web/index.html
       - ./apps/web/vite.config.ts:/app/apps/web/vite.config.ts
+      - ./packages/rules/src:/app/packages/rules/src

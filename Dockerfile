@@ -24,6 +24,7 @@ RUN corepack enable
 FROM base AS dev
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json apps/web/
+COPY packages/rules/package.json packages/rules/
 RUN pnpm install --frozen-lockfile
 COPY . .
 EXPOSE 5173
