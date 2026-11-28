@@ -298,7 +298,7 @@ export function serpent(): THREE.BufferGeometry {
     [0.34, 0.74],
     [0.3, 0.45],
   ];
-  /** 奶油色背刺，讓暗紅的身體在海面上有清楚的輪廓 */
+  /** 亮紅色背刺：在海面上最顯眼，也一眼看出是紅色生物 */
   const spike = (points: Point[]) => card(points, PALETTE.serpentCrest, 0.06);
   const humpSpikes = (x: number, r: number) =>
     [55, 90, 125].map((degrees) => {
@@ -306,20 +306,20 @@ export function serpent(): THREE.BufferGeometry {
         const a = ((degrees + offset) * Math.PI) / 180;
         return [x + Math.cos(a) * radius, Math.sin(a) * radius];
       };
-      return spike([at(-13, r * 0.94), at(0, r + 0.11), at(13, r * 0.94)]);
+      return spike([at(-14, r * 0.94), at(0, r + 0.15), at(14, r * 0.94)]);
     });
   const figure = merge([
     ...humpSpikes(-0.55, 0.22),
     ...humpSpikes(-0.07, 0.32),
     spike([
-      [0.32, 0.4],
-      [0.18, 0.55],
-      [0.32, 0.58],
+      [0.32, 0.38],
+      [0.14, 0.56],
+      [0.32, 0.59],
     ]),
     spike([
-      [0.32, 0.64],
-      [0.22, 0.84],
-      [0.4, 0.78],
+      [0.32, 0.62],
+      [0.18, 0.88],
+      [0.41, 0.78],
     ]),
     hump(-0.55, 0.22),
     hump(-0.07, 0.32),
@@ -328,7 +328,7 @@ export function serpent(): THREE.BufferGeometry {
       PALETTE.serpent,
       0.06,
     ).translate(0.45, 0, 0),
-    card(ellipse(0.62, 0.76, 0.055, 0.055, 10), PALETTE.serpentCrest, 0.13),
+    card(ellipse(0.62, 0.76, 0.055, 0.055, 10), PALETTE.serpentEye, 0.13),
     card(ellipse(0.635, 0.76, 0.027, 0.027, 8), PALETTE.ink, 0.15),
   ]);
   return merge([ripple(0.82, 0.42), leanBack(figure)]);
@@ -397,6 +397,23 @@ export function shark(): THREE.BufferGeometry {
       PALETTE.sharkBelly,
       0.13,
     ),
+    // 背部
+    flat(
+      [
+        [-0.35, 0.33],
+        [-0.14, 0.64],
+        [0.12, 0.9],
+        [0.42, 1.07],
+        [0.74, 1.12],
+        [0.66, 1.06],
+        [0.43, 0.99],
+        [0.16, 0.82],
+        [-0.07, 0.57],
+        [-0.25, 0.31],
+      ],
+      PALETTE.sharkBack,
+      0.13,
+    ),
     ...teeth([0.26, 0.675], [0.65, 0.965], 4, [0.045, -0.1]),
     ...teeth([0.28, 0.585], [0.71, 0.505], 4, [0.005, 0.1]),
     // 背鰭
@@ -407,7 +424,7 @@ export function shark(): THREE.BufferGeometry {
         [-0.42, 0.72],
         [-0.1, 0.66],
       ],
-      PALETTE.shark,
+      PALETTE.sharkAccent,
       0.09,
     ),
     // 眼睛和壓低的眉毛
@@ -432,7 +449,7 @@ export function shark(): THREE.BufferGeometry {
           [-0.07 + i * 0.1, 0.52],
           [-0.1 + i * 0.1, 0.52],
         ],
-        PALETTE.leafDark,
+        PALETTE.sharkBack,
         0.14,
       ),
     ),
@@ -447,7 +464,7 @@ export function shark(): THREE.BufferGeometry {
         [-1.1, 0.5],
         [-1, 0.2],
       ],
-      PALETTE.shark,
+      PALETTE.sharkAccent,
       0.08,
     ),
   ]);
@@ -509,8 +526,10 @@ export function whale(): THREE.BufferGeometry {
       [-0.06, 0.98],
       [0.18, 0.8],
     ],
-    PALETTE.seaFoam,
-    0.06,
+    PALETTE.whaleAccent,
+    0.07,
   );
+  // 以噴氣孔為中心放大，遠看才認得出藍色重點
+  spout.translate(-0.25, -0.52, 0).scale(1.25, 1.25, 1).translate(0.25, 0.52, 0);
   return merge([ripple(0.9, 0.45), leanBack(merge([profile, belly, eye, mouth, spout]))]);
 }

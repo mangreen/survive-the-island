@@ -21,6 +21,11 @@ function oklab(hex: string): readonly number[] {
 const distance = (a: string, b: string) =>
   100 * Math.hypot(...oklab(a).map((value, i) => value - oklab(b)[i]!));
 
+/** 彩度與色相角（度） */
+const chroma = (hex: string) => Math.hypot(oklab(hex)[1]!, oklab(hex)[2]!);
+const hue = (hex: string) =>
+  ((Math.atan2(oklab(hex)[2]!, oklab(hex)[1]!) * 180) / Math.PI + 360) % 360;
+
 const closest = (color: string, others: readonly string[]) =>
   Math.min(...others.map((other) => distance(color, other)));
 
@@ -45,6 +50,42 @@ describe('配色辨識度', () => {
     for (const color of [PALETTE.serpent, PALETTE.shark, PALETTE.whale]) {
       expect(closest(color, SEA), color).toBeGreaterThanOrEqual(14);
     }
+  });
+
+  it.each([
+    ['海蛇的紅色背刺', PALETTE.serpentCrest, PALETTE.serpent, 15, 35],
+    ['鯊魚的亮綠色鰭', PALETTE.sharkAccent, PALETTE.shark, 125, 165],
+    ['鯨魚的亮藍色水柱', PALETTE.whaleAccent, PALETTE.whale, 200, 265],
+  ])('%s夠鮮豔，在海面和身體上都跳得出來', (_, accent, body, hueFrom, hueTo) => {
+    expect(chroma(accent)).toBeGreaterThanOrEqual(0.12);
+    expect(hue(accent)).toBeGreaterThanOrEqual(hueFrom);
+    expect(hue(accent)).toBeLessThanOrEqual(hueTo);
+    expect(closest(accent, SEA)).toBeGreaterThanOrEqual(19);
+    expect(distance(accent, body)).toBeGreaterThanOrEqual(15);
+  });
+
+  it('紅色人物不會跟海蛇混淆', () => {
+    const red = PLAYER_COLORS[0];
+    expect(distance(red, PALETTE.serpent)).toBeGreaterThanOrEqual(25);
+    expect(distance(red, PALETTE.serpentCrest)).toBeGreaterThanOrEqual(14);
+  });
+
+  it('藍色人物不會跟鯨魚混淆', () => {
+    const blue = PLAYER_COLORS[1];
+    expect(distance(blue, PALETTE.whale)).toBeGreaterThanOrEqual(22);
+    expect(distance(blue, PALETTE.whaleAccent)).toBeGreaterThanOrEqual(12);
+  });
+
+  it('紫色人物夠亮', () => {
+    expect(oklab(PLAYER_COLORS[4])[0]).toBeGreaterThanOrEqual(0.6);
+  });
+
+  it('鯊魚是看得出綠色、但不鮮豔的灰綠', () => {
+    // 彩度太低就只是灰色，太高就像玩具；OKLab 的綠色色相大約在 125 到 165 度
+    expect(chroma(PALETTE.shark)).toBeGreaterThanOrEqual(0.035);
+    expect(chroma(PALETTE.shark)).toBeLessThanOrEqual(0.07);
+    expect(hue(PALETTE.shark)).toBeGreaterThanOrEqual(125);
+    expect(hue(PALETTE.shark)).toBeLessThanOrEqual(165);
   });
 
   it('海蛇不會跟森林混在一起', () => {

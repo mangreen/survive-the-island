@@ -204,7 +204,7 @@ const GENERATORS: Readonly<Record<Surface, (size: number, rng: Rng) => Field>> =
 };
 
 /** 各紙紋的明暗起伏（標準差，0–255） */
-const CONTRAST: Readonly<Record<Surface, number>> = { sand: 30, grass: 40, rock: 36, water: 28 };
+const CONTRAST: Readonly<Record<Surface, number>> = { sand: 30, grass: 40, rock: 36, water: 34 };
 
 export function createSurfaceData(size = SURFACE_SIZE): Uint8Array {
   const data = new Uint8Array(size * size * 4);
