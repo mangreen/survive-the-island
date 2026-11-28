@@ -16,11 +16,12 @@ import {
   TILE_TOP,
   TILE_YAW,
   boat,
-  explorer,
+  explorerForms,
   serpent,
   shark,
   tile,
   whale,
+  type Habitat,
 } from '../paper/pieces';
 import { createRng } from '../paper/random';
 import { createStrengthData } from '../paper/strengthMap';
@@ -81,6 +82,9 @@ const BOARD_POINTS = CELLS.flatMap((hex) => {
     new THREE.Vector3(x, 0.6, z + HEX_RADIUS),
   ];
 });
+
+/** 漂在海上的棋子離海面的高度 */
+const SEA_PIECE_Y = 0.1;
 
 export function createBoardScene(
   canvas: HTMLCanvasElement,
@@ -145,7 +149,7 @@ export function createBoardScene(
   const tileVariants = new Map(
     TERRAINS.map((terrain) => [terrain, Array.from({ length: 4 }, () => tile(terrain, rng))]),
   );
-  const explorerShapes = PLAYER_COLORS.map((color) => explorer(color));
+  const explorerShapes = PLAYER_COLORS.map((color) => explorerForms(color));
   const boatShape = boat();
   const serpentShape = serpent();
   const sharkShape = shark();
@@ -203,16 +207,26 @@ export function createBoardScene(
     }
     for (const [geometry, matrices] of tileMatrices) instances(geometry, matrices);
 
-    const byPlayer: THREE.Matrix4[][] = PLAYER_COLORS.map(() => []);
+    const byPlayer = PLAYER_COLORS.map((): Record<Habitat, THREE.Matrix4[]> => ({
+      land: [],
+      sea: [],
+    }));
     for (const { hex, player, onTile } of layout.explorers) {
       const { x, z } = toWorld(hex);
-      const y = onTile ? (heights.get(`${hex.c},${hex.r}`) ?? 0) : 0;
-      // 站在板塊前半部，避免被樹和山擋住
       const { offsetZ, scale, yawRange } = EXPLORER_ON_TILE;
       const yaw = (placeRng() - 0.5) * 2 * yawRange;
-      byPlayer[player]!.push(at(x, y, z + offsetZ, yaw, scale));
+      if (onTile) {
+        // 站在板塊前半部，避免被樹和山擋住
+        const y = heights.get(`${hex.c},${hex.r}`) ?? 0;
+        byPlayer[player]!.land.push(at(x, y, z + offsetZ, yaw, scale));
+      } else {
+        byPlayer[player]!.sea.push(at(x, SEA_PIECE_Y, z, yaw, scale));
+      }
     }
-    byPlayer.forEach((matrices, i) => instances(explorerShapes[i]!, matrices));
+    byPlayer.forEach(({ land, sea }, i) => {
+      instances(explorerShapes[i]!.land, land);
+      instances(explorerShapes[i]!.sea, sea, true);
+    });
 
     const seaPieces = (
       geometry: THREE.BufferGeometry,
@@ -224,7 +238,7 @@ export function createBoardScene(
         geometry,
         hexes.map((hex) => {
           const { x, z } = toWorld(hex);
-          return at(x, 0.1, z, (placeRng() - 0.5) * spin, size);
+          return at(x, SEA_PIECE_Y, z, (placeRng() - 0.5) * spin, size);
         }),
         true,
       );
@@ -425,7 +439,7 @@ export function createBoardScene(
       controls.dispose();
       const geometries = [
         ...[...tileVariants.values()].flat(),
-        ...explorerShapes,
+        ...explorerShapes.flatMap(({ land, sea }) => [land, sea]),
         boatShape,
         serpentShape,
         sharkShape,

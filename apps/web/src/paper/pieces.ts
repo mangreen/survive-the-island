@@ -163,6 +163,25 @@ export function tile(terrain: Terrain, rng: Rng): THREE.BufferGeometry {
   return merge(parts);
 }
 
+/** 頭和帽子；陸上和海中是同一個人，只差高度 */
+function headAndHat(color: string, headY: number): THREE.BufferGeometry[] {
+  const head = cross(ellipse(0, headY, 0.11, 0.11, 10), PALETTE.skin, 0.05);
+  const brim: readonly Point[] = [
+    [-0.15, 0.06],
+    [0.15, 0.06],
+    [0.07, 0.1],
+    [0.04, 0.17],
+    [-0.04, 0.17],
+    [-0.07, 0.1],
+  ];
+  const hat = cross(
+    brim.map(([x, y]): Point => [x, headY + y]),
+    color,
+    0.07,
+  );
+  return [head, hat];
+}
+
 export function explorer(color: string): THREE.BufferGeometry {
   // 奶油色外圈讓棋子在任何地形上都看得出來
   const base = merge([
@@ -187,20 +206,114 @@ export function explorer(color: string): THREE.BufferGeometry {
     0.05,
   );
   body.translate(0, 0.06, 0);
-  const head = cross(ellipse(0, 0.52, 0.11, 0.11, 10), PALETTE.skin, 0.05);
-  const hat = cross(
+  return merge([base, body, ...headAndHat(color, 0.52)]);
+}
+
+/**
+ * 海中的人物：水面以下看不到，只剩上半身、一手划出水面、一手往前伸，周圍是水波。
+ * y = 0 是水面。
+ */
+function swimmer(color: string): THREE.BufferGeometry {
+  // 身體前面立一片小浪蓋住胸口下緣，看起來是泡在水裡而不是坐在上面
+  const wave = (points: readonly Point[], color: string, z: number) => {
+    const geometry = textured(card(points, color, 0.025, PALETTE.seaFoam), 'water');
+    geometry.translate(0, 0, z);
+    return geometry;
+  };
+  const frontWave = wave(
     [
-      [-0.15, 0.58],
-      [0.15, 0.58],
-      [0.07, 0.62],
-      [0.04, 0.69],
-      [-0.04, 0.69],
-      [-0.07, 0.62],
+      [-0.25, 0],
+      [0.25, 0],
+      [0.19, 0.07],
+      [0.12, 0.045],
+      [0.04, 0.1],
+      [-0.04, 0.055],
+      [-0.13, 0.09],
+      [-0.19, 0.045],
     ],
-    color,
-    0.07,
+    PALETTE.seaFoam,
+    0.11,
   );
-  return merge([base, body, head, hat]);
+  const chestOutline: readonly Point[] = [
+    [-0.15, 0.02],
+    [0.15, 0.02],
+    [0.16, 0.12],
+    [0.09, 0.2],
+    [-0.09, 0.2],
+    [-0.16, 0.12],
+  ];
+  // 側向的紙片剪窄，才不會穿出前面的浪
+  const chestSide = card(
+    chestOutline.map(([x, y]): Point => [x * 0.55, y]),
+    color,
+    0.05,
+  ).rotateY(Math.PI / 2);
+  const chest = merge([card(chestOutline, color, 0.05), chestSide]);
+  // 手臂是單片紙，往後仰一點讓俯視鏡頭看得到
+  const arm = (points: readonly Point[], z: number) =>
+    leanArm(card(ribbon(points, 0.085, 0.055), color, 0.04), z);
+  const hand = (x: number, y: number, z: number) =>
+    leanArm(card(ellipse(x, y, 0.048, 0.048, 8), PALETTE.skin, 0.05), z);
+  const splash = (x: number, size: number) =>
+    leanArm(
+      card(
+        [
+          [x - size * 0.5, 0.03],
+          [x + size * 0.5, 0.03],
+          [x + size * 0.15, 0.03 + size],
+        ],
+        PALETTE.cream,
+        0.02,
+      ),
+      0.06,
+    );
+  return merge([
+    ripple(0.31, 0.21),
+    chest,
+    frontWave,
+    ...headAndHat(color, 0.33),
+    // 一手高舉過肩往下划，一手貼著水面往前伸
+    arm(
+      [
+        [0.11, 0.15],
+        [0.27, 0.33],
+        [0.38, 0.14],
+      ],
+      0.02,
+    ),
+    hand(0.39, 0.1, 0.02),
+    arm(
+      [
+        [-0.11, 0.13],
+        [-0.24, 0.07],
+        [-0.34, 0.05],
+      ],
+      0.08,
+    ),
+    hand(-0.36, 0.05, 0.08),
+    splash(0.42, 0.1),
+    splash(0.5, 0.06),
+  ]);
+}
+
+/** 以水面為軸往後仰 */
+function leanArm<T extends THREE.BufferGeometry>(geometry: T, z: number): T {
+  geometry.rotateX(-0.42);
+  geometry.translate(0, 0, z);
+  return geometry;
+}
+
+/** 棋子所在的環境 */
+export type Habitat = 'land' | 'sea';
+
+/**
+ * 能在陸上也能在海裡的棋子，兩種外形各做一個，擺放時依所在格子挑。
+ * 之後的兩棲生物也用這個型別。
+ */
+export type AmphibiousForms = Readonly<Record<Habitat, THREE.BufferGeometry>>;
+
+export function explorerForms(color: string): AmphibiousForms {
+  return { land: explorer(color), sea: swimmer(color) };
 }
 
 const HULL: readonly Point[] = [
